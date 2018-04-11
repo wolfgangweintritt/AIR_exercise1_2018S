@@ -99,3 +99,11 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Visual Studio Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+test/
