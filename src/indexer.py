@@ -116,6 +116,11 @@ for f in files:
 assoc_list = sort_by_terms_and_doc(assoc_list)
 postings_list = create_postings_list(assoc_list)
 
+# TODO serialize the index. we need 3 things:
+#   1. posting list
+#   2. document-lengths dictionary
+#   3. tokenizing option (stemming, case folding, ...)
+
 if DEBUG:
     for key, x in postings_list.items():
         dbg("%s" % x)

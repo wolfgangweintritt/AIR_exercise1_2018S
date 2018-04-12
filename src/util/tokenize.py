@@ -51,10 +51,6 @@ class Tokenizer:
             if self.special_strings:
                 t = delete_specials(t)
                 
-            if self.stop_words:
-                if t in stop_words_list:
-                    continue
-                
             if self.stemming:
                 t = stemmer.stem(t)
                 
@@ -62,6 +58,10 @@ class Tokenizer:
                 # has additional parameter pos='n'
                 # that specifies type of token (e.g. Noun, Verb, ...)
                 t = lemmatizer.lemmatize(t)
+
+            if self.stop_words:
+                if t in stop_words_list:
+                    continue
             
             tokens.append(t)
 
