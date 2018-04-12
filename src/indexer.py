@@ -3,7 +3,7 @@
 import argparse
 import os
 import os.path
-import pickle
+
 from util.tokenize import Tokenizer
 from util.util import PostingsListItem
 
@@ -13,7 +13,6 @@ from util.util import PostingsListItem
 # * stemming (per library)
 # * lemmatization (per library)
 
-DEBUG = False
 
 def dbg(*args, **kwargs):
     if DEBUG:
@@ -53,12 +52,12 @@ def sort_by_terms_and_doc(assoc_list):
 def create_postings_list(assoc_list):
     """Create a list of tokens associated with document frequency and document list"""
     # assumes to have a sorted assoc_list
-    postings_list = []
+    postings_list = {}
     old_tkn = None
     for (t, d) in assoc_list:
         if old_tkn is None or old_tkn.token != t:
             old_tkn = PostingsListItem(t, [d])
-            postings_list.append(old_tkn)
+            postings_list[old_tkn.token] = (old_tkn)
         else:
             old_tkn.add_doc(d)
             
@@ -101,12 +100,14 @@ dbg()
 # read each file and process their tokens
 tokenizer = Tokenizer(case, special, stop, stemming, lemma)
 assoc_list = []
+document_lengths = {}
 for f in files:
-    lines = []
     with open(f) as read_file:
         lines = "\n".join(read_file.readlines())
-    
-    for t in tokenizer.tokenize(lines):
+
+    tokens = tokenizer.tokenize(lines)
+    document_lengths[f] = len(tokens)
+    for t in tokens:
         assoc = create_assoc(t, f)
         assoc_list.append(assoc)
         
@@ -116,7 +117,7 @@ assoc_list = sort_by_terms_and_doc(assoc_list)
 postings_list = create_postings_list(assoc_list)
 
 if DEBUG:
-    for x in postings_list:
+    for key, x in postings_list.items():
         dbg("%s" % x)
         for f in files:
             dbg("  > %dx in '%s'" % (x.occurrences_in(f), f))
