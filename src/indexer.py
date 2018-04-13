@@ -3,6 +3,7 @@
 import argparse
 import os
 import os.path
+import util.document as document
 
 from util.tokenize import Tokenizer
 from util.util import PostingsListItem
@@ -101,16 +102,24 @@ dbg()
 tokenizer = Tokenizer(case, special, stop, stemming, lemma)
 assoc_list = []
 document_lengths = {}
+documents = []
 for f in files:
+    docs = []
     with open(f) as read_file:
-        lines = "\n".join(read_file.readlines())
+        # parse the documents from each file
+        content = read_file.read()
+        docs = document.parse_documents(content)
 
-    tokens = tokenizer.tokenize(lines)
-    document_lengths[f] = len(tokens)
-    for t in tokens:
-        assoc = create_assoc(t, f)
-        assoc_list.append(assoc)
-        
+    for doc in docs:
+        # tokenize each document
+        # and construct the association list (used for the postings list)
+        documents.append(doc)
+        tokens = tokenizer.tokenize(doc.text)
+        document_lengths[doc.id] = len(tokens)
+        for t in tokens:
+            assoc = create_assoc(t, doc.id)
+            assoc_list.append(assoc)
+
 # sort by token and document
 # and create 
 assoc_list = sort_by_terms_and_doc(assoc_list)
@@ -124,5 +133,5 @@ postings_list = create_postings_list(assoc_list)
 if DEBUG:
     for key, x in postings_list.items():
         dbg("%s" % x)
-        for f in files:
-            dbg("  > %dx in '%s'" % (x.occurrences_in(f), f))
+        for d in documents:
+            dbg("  > %dx in '%s'" % (x.occurrences_in(d.id), d.id))
