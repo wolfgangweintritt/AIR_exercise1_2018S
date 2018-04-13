@@ -1,4 +1,22 @@
-from typing import List
+from typing import List, Dict
+
+class Index:
+    def __init__(self,
+                 postings_list: List,
+                 document_lengths: Dict,
+                 special_strings=False,
+                 case_folding=False,
+                 stop_words=False,
+                 lemmatization=False,
+                 stemming=False):
+
+        self.postings_list = postings_list
+        self.document_lengths = document_lengths
+        self.special_strings = special_strings
+        self.case_folding = case_folding
+        self.stop_words = stop_words
+        self.lemmatization = lemmatization
+        self.stemming = stemming
 
 
 class PostingsListItem:

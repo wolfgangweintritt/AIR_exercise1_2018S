@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import pickle
 import os
 import os.path
 import util.document as document
 
 from util.tokenize import Tokenizer
-from util.util import PostingsListItem
+from util.util import PostingsListItem, Index
 
 # support the following operations:
 # * case folding
@@ -26,9 +27,11 @@ def expand_directories(files):
         f = os.path.expanduser(f)
         f = os.path.expandvars(f)
         if os.path.isdir(f):
-            # ignore subdirectories
-            xs = [os.path.join(f, x) for x in os.listdir(f)]
-            tmp.extend([x for x in xs if os.path.isfile(x)])
+            # if the file is a directory: include all
+            # contained files and subdirectories
+            for (root, dirs, files) in os.walk(f):
+                for filename in files:
+                    tmp.append(os.path.join(root, filename))
 
         elif os.path.isfile(f):
             tmp.append(f)
@@ -75,6 +78,7 @@ parser.add_argument("--stop-words", "-w", help="Stop Words", action="store_true"
 parser.add_argument("--lemmatization", "-l", help="Lemmatization", action="store_true")
 parser.add_argument("--stemming", "-S", help="Stemming", action="store_true")
 parser.add_argument("--debug", "-d", help="Activate Debugging", action="store_true")
+parser.add_argument("--utf8", "-u", help="Use UTF-8 encoding instead of ISO-8859-1", action="store_true")
 parser.add_argument("files", metavar="FILE...", nargs="+", help="Files to index")
 args = parser.parse_args()
 
@@ -85,6 +89,7 @@ lemma    = args.lemmatization
 stemming = args.stemming
 files    = args.files
 DEBUG    = args.debug
+encoding = "utf8" if args.utf8 else "iso-8859-1"
 
 # create list of files from positional arguments
 files = expand_directories(files)
@@ -105,7 +110,7 @@ document_lengths = {}
 documents = []
 for f in files:
     docs = []
-    with open(f) as read_file:
+    with open(f, encoding=encoding) as read_file:
         # parse the documents from each file
         content = read_file.read()
         docs = document.parse_documents(content)
@@ -125,13 +130,15 @@ for f in files:
 assoc_list = sort_by_terms_and_doc(assoc_list)
 postings_list = create_postings_list(assoc_list)
 
-# TODO serialize the index. we need 3 things:
-#   1. posting list
-#   2. document-lengths dictionary
-#   3. tokenizing option (stemming, case folding, ...)
-
 if DEBUG:
     for key, x in postings_list.items():
         dbg("%s" % x)
         for d in documents:
             dbg("  > %dx in '%s'" % (x.occurrences_in(d.id), d.id))
+
+idx = Index(postings_list, document_lengths,
+            special, case, stop, lemma, stemming)
+
+# persist the Index object with the pickle module
+with open("index", mode="wb") as idx_file:
+    pickle.dump(idx, idx_file)
