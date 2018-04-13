@@ -1,1 +1,8 @@
-Another test document I created and edited with VIM. I live in Vienna and drink many beers.
+<DOC>
+<DOCNO>2</DOCNO>
+<TEXT>Another test document I created and edited with VIM. I live in Vienna and drink many beers.</TEXT>
+</DOC>
+<DOC>
+<DOCNO>3</DOCNO>
+<TEXT>And yet another document containing text.</TEXT>
+</DOC>
