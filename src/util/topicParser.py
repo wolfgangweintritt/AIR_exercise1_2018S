@@ -30,7 +30,6 @@ def parse_topic(file: str) -> Dict[int, str]:
 
         if line.startswith("<title>"):
             prefix = "<title> "
-            print(line[len(prefix):])
             search_string += line[len(prefix):] + " "
             continue
 

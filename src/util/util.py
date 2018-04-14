@@ -2,7 +2,7 @@ from typing import List, Dict
 
 class Index:
     def __init__(self,
-                 postings_list: List,
+                 postings_list: Dict,
                  document_lengths: Dict,
                  special_strings=False,
                  case_folding=False,

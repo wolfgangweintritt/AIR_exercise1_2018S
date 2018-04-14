@@ -108,8 +108,10 @@ tokenizer = Tokenizer(case, special, stop, stemming, lemma)
 assoc_list = []
 document_lengths = {}
 documents = []
-for f in files:
+for i, f in enumerate(files):
     docs = []
+    percent_done = ((i + 1) / len(files)) * 100
+    print("file %d/%d (%.2f%%)" % (i + 1, len(files), percent_done))
     with open(f, encoding=encoding) as read_file:
         # parse the documents from each file
         content = read_file.read()
