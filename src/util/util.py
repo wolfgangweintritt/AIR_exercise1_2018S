@@ -24,27 +24,29 @@ class PostingsListItem:
 
     def __init__(self, token: str, doc_list: List[str]):
         self.token = token
-        self.document_list = []
-        self.occurrences = []
+        self.occurrences = {}
 
         for doc in doc_list:
             self.add_doc(doc)
     
     def count(self) -> int:
         """Return the document frequency"""
-        return len(self.document_list)
+        return len(self.occurrences)
 
     def occurrences_in(self, document: str) -> int:
         """Check how often the token occurs in the specified document"""
-        return sum([1 for o in self.occurrences if o == document])
+        if document not in self.occurrences:
+            return 0
+        else:
+            return self.occurrences[document]
 
     def add_doc(self, document: str) -> None:
-        """Add document, if it is not yet contained"""
-        if document not in self.document_list:
-            self.document_list.append(document)
-
-        self.occurrences.append(document)
+        """Increase count of occurrences of the item in document"""
+        if document in self.occurrences:
+            self.occurrences[document] += 1
+        else:
+            self.occurrences[document] = 1
 
     def __str__(self) -> str:
-        rep = "(%s, %s): %s" % (self.token, self.count(), self.document_list)
+        rep = "(%s, %s): %s" % (self.token, self.count(), [k for k in self.occurrences])
         return rep
