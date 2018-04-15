@@ -4,6 +4,11 @@ import os.path
 import re
 from typing import List
 
+# *? makes the regex non-greedy (as opposed to *)
+doc_re = re.compile(r"<DOC>((.|\n)*?)</DOC>")
+docno_re = re.compile(r"<DOCNO>((.|\n)*?)</DOCNO>")
+text_re = re.compile(r"<TEXT>((.|\n)*?)</TEXT>")
+# hl_re = re.compile(r"<HEADLINE>((.|\n)*?)</HEADLINE>")
 
 class Document:
     def __init__(self, doc_id, text, headline=None):
@@ -18,33 +23,27 @@ class Document:
 def parse_documents(text: str) -> List[Document]:
     docs = []
 
-    # *? makes the regex non-greedy (as opposed to *)
-    doc_pattern = r"<DOC>((.|\n)*?)</DOC>"
-    docno_pattern = r"<DOCNO>((.|\n)*?)</DOCNO>"
-    text_pattern = r"<TEXT>((.|\n)*?)</TEXT>"
-    hl_pattern = r"<HEADLINE>((.|\n)*?)</HEADLINE>"
-
-    doc_matches = re.findall(doc_pattern, text)
+    doc_matches = doc_re.findall(text)
     # because findall() yields a list of tuples with each group...
     doc_matches = [d[0] for d in doc_matches]
-    for doc in doc_matches:
 
-        docno_match = re.search(docno_pattern, doc)
-        text_match = re.search(text_pattern, doc)
-        hl_match = re.search(hl_pattern, doc)
+    for doc in doc_matches:
+        docno_match = docno_re.search(doc)
+        text_match = text_re.search(doc)
+        # hl_match = hl_re.search(doc)
 
         if docno_match is None or text_match is None:
             continue
         
         docno = docno_match.group(1).strip()
         text = text_match.group(1).strip()
-        headline = hl_match.group(1).strip() if hl_match is not None else None
+        # headline = hl_match.group(1).strip() if hl_match is not None else None
 
         if not docno or not text:
             # if either the document ID or the text is empty: skip
             continue
 
-        docs.append(Document(docno, text, headline))
+        docs.append(Document(docno, text))
         
     return docs
 
