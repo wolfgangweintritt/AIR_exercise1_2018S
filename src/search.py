@@ -26,25 +26,25 @@ def calc_word_doc_scores(word: str) -> Dict[str, float]:
     if word not in postings_list:
         return {}
 
-    document_scores = {}
+    document_scores_for_word = {}
     posting_item = postings_list[word]
 
     idf = log10(len(document_lengths) / posting_item.count())
     for doc_id, doc_freq in posting_item.occurrences.items():
         tf = log10(1 + doc_freq)
-        current_score = document_scores.get(doc_id, 0)
+        current_score = document_scores_for_word.get(doc_id, 0)
         if scoring == 'tfidf':
             # w_t,d = log (1 + tf_t,d) * log (N / df_t)
-            document_scores[doc_id] = current_score + (tf * idf)
+            document_scores_for_word[doc_id] = current_score + (tf * idf)
         elif scoring == 'bm25':
             # RSV_d = idf_t * ((k_1 + 1) * tf_t,d / k_1 * ((1-b)+b * (L_d / L_avg)) * tf_t,d)
             # k1: tuning parameter controlling the document TF scaling
             # b: tuning parameter controlling the scaling by document length
             upper_part = (k1 + 1) * tf
             lower_part = k1 * ((1 - b) + b * (document_lengths[doc_id] / avg_document_length)) + tf
-            document_scores[doc_id] = current_score + (idf * (upper_part / lower_part))
+            document_scores_for_word[doc_id] = current_score + (idf * (upper_part / lower_part))
 
-    return document_scores
+    return document_scores_for_word
 
 
 # add argument parsing
@@ -108,7 +108,7 @@ avg_document_length = sum(doc_lens) / len(doc_lens)
 
 word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.
 top_1000_scores = SortedDict(neg, {})  # sorted dict: score => (topic, dict)
-for topic_id, topic_tokens in topics.items():
+for topic_id, topic_tokens in tokenized_topics.items():
     document_scores = {}  # dict: document => score
     for word in topic_tokens:
         if word not in word_doc_score:
