@@ -30,19 +30,19 @@ def calc_word_doc_scores(word: str) -> Dict[str, float]:
     posting_item = postings_list[word]
 
     idf = log10(len(document_lengths) / posting_item.count())
-    for d in posting_item.document_list:
-        tf = log10(1 + posting_item.occurrences_in(d))
-        current_score = document_scores.get(d, 0)
+    for doc_id, doc_freq in posting_item.occurrences.items():
+        tf = log10(1 + doc_freq)
+        current_score = document_scores.get(doc_id, 0)
         if scoring == 'tfidf':
             # w_t,d = log (1 + tf_t,d) * log (N / df_t)
-            document_scores[d] = current_score + (tf * idf)
+            document_scores[doc_id] = current_score + (tf * idf)
         elif scoring == 'bm25':
             # RSV_d = idf_t * ((k_1 + 1) * tf_t,d / k_1 * ((1-b)+b * (L_d / L_avg)) * tf_t,d)
             # k1: tuning parameter controlling the document TF scaling
             # b: tuning parameter controlling the scaling by document length
             upper_part = (k1 + 1) * tf
-            lower_part = k1 * ((1 - b) + b * (document_lengths[d] / avg_document_length)) + tf
-            document_scores[d] = current_score + (idf * (upper_part / lower_part))
+            lower_part = k1 * ((1 - b) + b * (document_lengths[doc_id] / avg_document_length)) + tf
+            document_scores[doc_id] = current_score + (idf * (upper_part / lower_part))
 
     return document_scores
 
