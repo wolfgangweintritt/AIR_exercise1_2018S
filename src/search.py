@@ -13,6 +13,9 @@ from util.topicParser import parse_topic
 from util.tokenize import Tokenizer
 
 
+TOPIC_STOPWORDS = ['document', 'relevant', 'mention']
+
+
 def dbg(*args, **kwargs):
     if DEBUG:
         print(*args, **kwargs)
@@ -93,9 +96,9 @@ dbg("Lemma   : %s" % idx.lemmatization)
 dbg("Stemming: %s" % idx.stemming)
 
 
-# TODO additional stopwords? ['document', 'relevant', 'mention'] => add to tokenizer options?
 topics = parse_topic(topic_file)
-tokenizer = Tokenizer(True, True, True, True, True)
+# tokenize the topics content with the same options that the index was created with, omit repeated tokens
+tokenizer = Tokenizer(True, True, True, True, True, TOPIC_STOPWORDS)
 tokenized_topics = {k: tokenizer.tokenize(v) for k, v in topics.items()}
 pprint(tokenized_topics)
 
@@ -103,6 +106,7 @@ pprint(tokenized_topics)
 doc_lens = [l for d, l in document_lengths.items()]
 avg_document_length = sum(doc_lens) / len(doc_lens)
 
+# use sets => against problem #1, divide by set size => against problem #2
 # TODO what if the word occurs in the query aka topic multiple times?
 # TODO long queries yield higher document scores by design
 word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.

@@ -1,7 +1,6 @@
 import re
 import nltk
 import os.path
-import typing
 from typing import List
 from nltk.stem import WordNetLemmatizer
 from nltk.stem.snowball import EnglishStemmer
@@ -32,13 +31,17 @@ class Tokenizer:
                  special_strings: bool,
                  stop_words: bool,
                  stemming: bool,
-                 lemmatization: bool):
+                 lemmatization: bool,
+                 stop_word_list: List[str] = None):
 
         self.case_folding = case_folding
         self.special_strings = special_strings
         self.stop_words = stop_words
         self.stemming = stemming
         self.lemmatization = lemmatization
+        self.stop_words_list = [] if stop_word_list is None else stop_word_list
+        self.stop_words_list = stop_words_list + self.stop_words_list
+
 
     def tokenize(self, document: str) -> List[str]:
         """Tokenize the document and return a list of tokens"""
@@ -60,7 +63,7 @@ class Tokenizer:
                 t = lemmatizer.lemmatize(t)
 
             if self.stop_words:
-                if t in stop_words_list:
+                if t in self.stop_words_list:
                     continue
             
             tokens.append(t)
