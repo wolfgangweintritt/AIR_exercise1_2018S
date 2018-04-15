@@ -99,16 +99,13 @@ dbg("Stemming: %s" % idx.stemming)
 topics = parse_topic(topic_file)
 # tokenize the topics content with the same options that the index was created with, omit repeated tokens
 tokenizer = Tokenizer(True, True, True, True, True, TOPIC_STOPWORDS)
-tokenized_topics = {k: tokenizer.tokenize(v) for k, v in topics.items()}
+tokenized_topics = {k: set(tokenizer.tokenize(v)) for k, v in topics.items()}
 pprint(tokenized_topics)
 
 
 doc_lens = [l for d, l in document_lengths.items()]
 avg_document_length = sum(doc_lens) / len(doc_lens)
 
-# use sets => against problem #1, divide by set size => against problem #2
-# TODO what if the word occurs in the query aka topic multiple times?
-# TODO long queries yield higher document scores by design
 word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.
 top_1000_scores = SortedDict(neg, {})  # sorted dict: score => (topic, dict)
 for topic_id, topic_tokens in topics.items():
@@ -121,6 +118,9 @@ for topic_id, topic_tokens in topics.items():
         for doc_id, score in word_doc_score[word].items():
             current_doc_score = document_scores.get(doc_id, 0)
             document_scores[doc_id] = current_doc_score + score
+
+    # topic length corrections: map over document_scores
+    document_scores = {k: v/len(topic_tokens) for k, v in document_scores.items()}
 
     # now take all documents and add the ones with scores in the top 1000 overall to our sorted dict.
     for doc_id, score in document_scores.items():
