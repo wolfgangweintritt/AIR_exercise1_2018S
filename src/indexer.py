@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 
 import argparse
 import pickle
@@ -128,3 +128,4 @@ except MemoryError as e:
 
 except Exception as e:
     print(str(e))
+
