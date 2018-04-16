@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
-from math import log10
 import os.path
 import pickle
-from pprint import pprint
-from typing import Dict
-from sortedcontainers import SortedDict
-from operator import neg
 from collections import Counter
-
-from util.topicParser import parse_topic
+from math import log10
+from operator import neg
+from pprint import pprint
+from sortedcontainers import SortedDict
+from typing import Dict
 from util.tokenize import Tokenizer
+from util.topicParser import parse_topic
+from util.util import PostingsListItem
 
 
 TOPIC_STOPWORDS = ['document', 'relevant', 'mention']
@@ -64,7 +64,7 @@ def calc_word_doc_scores(word: str) -> Dict[str, float]:
 
 
 # add argument parsing
-parser = argparse.ArgumentParser(usage="Takes query and searches index for fitting documents",
+parser = argparse.ArgumentParser(description="Takes query and searches index for fitting documents",
                                  epilog="Maximilian Moser and Wolfgang Weintritt, 2018")
 
 parser.add_argument("--scoring-function", "-s", help="Scoring Function", choices=['tfidf', 'bm25', 'bm25va', 'bm25alt'], default="tfidf")
@@ -90,30 +90,39 @@ dbg("Parameter b   : %s" % b)
 dbg("Topic File    : %s" % topic_file)
 dbg()
 
-
-if not os.path.isfile("index"):
-    print("No 'index' file could be found! Aborting.")
+if not os.path.isfile("index") or not os.path.isfile("index.meta"):
+    print("Either 'index' or 'index.meta' file could not be found! Aborting.")
     print("Please execute the indexer first")
     exit(1)
 
-with open("index", "rb") as index_file:
-    idx = pickle.load(index_file)
+# read the index metadata
+with open("index.meta", "rb") as idx_meta_file:
+    idx_meta = pickle.load(idx_meta_file)
 
-document_lengths = idx.document_lengths
-document_set_lengths = idx.document_set_lengths
-postings_list = idx.postings_list
-special = idx.special_strings
-case = idx.case_folding
-stop = idx.stop_words
-lemma = idx.lemmatization
-stem = idx.stemming
+# read the postings_list from the index file
+postings_list = []
+with open("index", "r") as idx_file:
+    line = idx_file.readline()
+    while line is not None:
+        if line.strip():
+            pli = PostingsListItem.from_json(line.strip())
+            postings_list.append(pli)
+        line = idx_file.readline()
+
+document_lengths     = idx_meta.document_lengths
+document_set_lengths = idx_meta.document_set_lengths
+special              = idx_meta.special_strings
+case                 = idx_meta.case_folding
+stop                 = idx_meta.stop_words
+lemma                = idx_meta.lemmatization
+stem                 = idx_meta.stemming
 
 dbg("Deserialized Index")
-dbg("Special : %s" % idx.special_strings)
-dbg("Case    : %s" % idx.case_folding)
-dbg("Stop    : %s" % idx.stop_words)
-dbg("Lemma   : %s" % idx.lemmatization)
-dbg("Stemming: %s" % idx.stemming)
+dbg("Special : %s" % idx_meta.special_strings)
+dbg("Case    : %s" % idx_meta.case_folding)
+dbg("Stop    : %s" % idx_meta.stop_words)
+dbg("Lemma   : %s" % idx_meta.lemmatization)
+dbg("Stemming: %s" % idx_meta.stemming)
 dbg(document_lengths)
 
 
