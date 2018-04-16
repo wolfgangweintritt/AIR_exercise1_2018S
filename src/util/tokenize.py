@@ -53,6 +53,8 @@ class Tokenizer:
 
             if self.special_strings:
                 t = delete_specials(t)
+                if t == "":
+                    continue
                 
             if self.stemming:
                 t = stemmer.stem(t)

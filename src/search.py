@@ -8,6 +8,7 @@ from pprint import pprint
 from typing import Dict
 from sortedcontainers import SortedDict
 from operator import neg
+from collections import Counter
 
 from util.topicParser import parse_topic
 from util.tokenize import Tokenizer
@@ -28,21 +29,36 @@ def calc_word_doc_scores(word: str) -> Dict[str, float]:
 
     document_scores_for_word = {}
     posting_item = postings_list[word]
+    df_t = posting_item.count()
 
-    idf = log10(len(document_lengths) / posting_item.count())
+    idf = log10(number_of_docs / df_t)
     for doc_id, doc_freq in posting_item.occurrences.items():
-        tf = log10(1 + doc_freq)
+        tf_d = log10(1 + doc_freq)
         current_score = document_scores_for_word.get(doc_id, 0)
         if scoring == 'tfidf':
             # w_t,d = log (1 + tf_t,d) * log (N / df_t)
-            document_scores_for_word[doc_id] = current_score + (tf * idf)
+            document_scores_for_word[doc_id] = current_score + (tf_d * idf)
         elif scoring == 'bm25':
+            # formula from "Grundlagen des Information Retrieval 2015W, slides 29.10, slide 32)
             # RSV_d = idf_t * ((k_1 + 1) * tf_t,d / k_1 * ((1-b)+b * (L_d / L_avg)) * tf_t,d)
             # k1: tuning parameter controlling the document TF scaling
             # b: tuning parameter controlling the scaling by document length
-            upper_part = (k1 + 1) * tf
-            lower_part = k1 * ((1 - b) + b * (document_lengths[doc_id] / avg_document_length)) + tf
+            upper_part = (k1 + 1) * tf_d
+            lower_part = k1 * ((1 - b) + b * (document_lengths[doc_id] / avg_document_length)) + tf_d
             document_scores_for_word[doc_id] = current_score + (idf * (upper_part / lower_part))
+
+        elif scoring == 'bm25alt' or scoring == 'bm25va':
+            if scoring == 'bm25alt':
+                # formula from paper "Verboseness Fission for BM25 Document Length Normalization"
+                b_va = (1 - b) + (b * (document_lengths[doc_id] / avg_document_length))
+            else: # bm25va
+                # formula from paper "Verboseness Fission for BM25 Document Length Normalization"
+                b_va = (mean_avg_tf ** (-2)) * (document_lengths[doc_id] / document_set_lengths[doc_id]) + (1 - mean_avg_tf ** (-1)) * (document_lengths[doc_id] / avg_document_length)
+            tf_d_normalized = tf_d / b_va
+            first_fraction = ((k3 + 1) * topic_tf_q[topic_id][word]) / (k3 + topic_tf_q[topic_id][word])
+            second_fraction = ((k1 + 1) * tf_d_normalized) / (k1 + tf_d_normalized)
+            third_fraction = log10((number_of_docs + 0.5) / (df_t + 0.5))
+            document_scores_for_word[doc_id] = current_score + (first_fraction * second_fraction * third_fraction)
 
     return document_scores_for_word
 
@@ -51,8 +67,9 @@ def calc_word_doc_scores(word: str) -> Dict[str, float]:
 parser = argparse.ArgumentParser(usage="Takes query and searches index for fitting documents",
                                  epilog="Maximilian Moser and Wolfgang Weintritt, 2018")
 
-parser.add_argument("--scoring-function", "-s", help="Scoring Function", choices=['tfidf', 'bm25', 'TODO'], default="tfidf")
+parser.add_argument("--scoring-function", "-s", help="Scoring Function", choices=['tfidf', 'bm25', 'bm25va', 'bm25alt'], default="tfidf")
 parser.add_argument("--k1", "-k1", help="BM25 Parameter k_1", type=float, default=1.2)
+parser.add_argument("--k3", "-k3", help="BM25 Parameter k_3", type=float, default=1.2)
 parser.add_argument("--b", "-b", help="BM25 Parameter b", type=float, default=0.75)
 parser.add_argument("--debug", "-d", help="Activate Debugging", action="store_true")
 parser.add_argument("topic_file", metavar="'topic file, can contain multiple topics'")
@@ -60,6 +77,7 @@ args = parser.parse_args()
 
 scoring    = args.scoring_function
 k1         = args.k1
+k3         = args.k3
 b          = args.b
 topic_file = args.topic_file
 DEBUG      = args.debug
@@ -67,6 +85,7 @@ DEBUG      = args.debug
 dbg("Activated Options")
 dbg("Scoring       : %s" % scoring)
 dbg("Parameter k_1 : %s" % k1)
+dbg("Parameter k_3 : %s" % k3)
 dbg("Parameter b   : %s" % b)
 dbg("Topic File    : %s" % topic_file)
 dbg()
@@ -81,6 +100,7 @@ with open("index", "rb") as index_file:
     idx = pickle.load(index_file)
 
 document_lengths = idx.document_lengths
+document_set_lengths = idx.document_set_lengths
 postings_list = idx.postings_list
 special = idx.special_strings
 case = idx.case_folding
@@ -94,17 +114,23 @@ dbg("Case    : %s" % idx.case_folding)
 dbg("Stop    : %s" % idx.stop_words)
 dbg("Lemma   : %s" % idx.lemmatization)
 dbg("Stemming: %s" % idx.stemming)
+dbg(document_lengths)
 
 
 topics = parse_topic(topic_file)
 # tokenize the topics content with the same options that the index was created with, omit repeated tokens
 tokenizer = Tokenizer(True, True, True, True, True, TOPIC_STOPWORDS)
-tokenized_topics = {k: set(tokenizer.tokenize(v)) for k, v in topics.items()}
-pprint(tokenized_topics)
+tokenized_topics = {k: tokenizer.tokenize(v) for k, v in topics.items()}
+topic_tf_q       = {k: Counter(v) for k, v in tokenized_topics.items()}
+tokenized_topics = {k: set(v)     for k, v in tokenized_topics.items()}
+dbg(tokenized_topics)
+dbg(topic_tf_q)
 
-
-doc_lens = [l for d, l in document_lengths.items()]
-avg_document_length = sum(doc_lens) / len(doc_lens)
+number_of_docs = len(document_lengths)
+doc_lens     = [l for d, l in document_lengths.items()]
+doc_set_lens = [l for d, l in document_set_lengths.items()]
+avg_document_length = sum(doc_lens) / number_of_docs
+mean_avg_tf = (1 / number_of_docs) * sum([x/y for (x,y) in zip(doc_lens, doc_set_lens)])
 
 word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.
 top_1000_scores = SortedDict(neg, {})  # sorted dict: score => (topic, dict)
