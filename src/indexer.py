@@ -80,6 +80,7 @@ try:
     tokenizer = Tokenizer(case, special, stop, stemming, lemma)
     assoc_list = []
     document_lengths = {}
+    document_set_lengths = {}
     no_files = len(files)
 
     for i, f in enumerate(files):
@@ -99,7 +100,8 @@ try:
             # tokenize each document
             # and construct the association list (used for the postings list)
             tokens = tokenizer.tokenize(doc.text)
-            document_lengths[doc.id] = len(tokens)
+            document_lengths[doc.id]     = len(tokens)
+            document_set_lengths[doc.id] = len(set(tokens))
 
             for t in tokens:
                 # increase the occurrences of the token in the document
@@ -115,7 +117,7 @@ try:
             for d in document_lengths:
                 dbg("  > %dx in '%s'" % (x.occurrences_in(d), d))
 
-    idx = Index(postings_list, document_lengths,
+    idx = Index(postings_list, document_lengths, document_set_lengths,
                 special, case, stop, lemma, stemming)
 
     # persist the Index object with the pickle module

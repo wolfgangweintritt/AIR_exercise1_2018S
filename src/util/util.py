@@ -4,6 +4,7 @@ class Index:
     def __init__(self,
                  postings_list: Dict,
                  document_lengths: Dict,
+                 document_set_lengths: Dict,
                  special_strings=False,
                  case_folding=False,
                  stop_words=False,
@@ -12,6 +13,7 @@ class Index:
 
         self.postings_list = postings_list
         self.document_lengths = document_lengths
+        self.document_set_lengths = document_set_lengths
         self.special_strings = special_strings
         self.case_folding = case_folding
         self.stop_words = stop_words
