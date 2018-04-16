@@ -109,3 +109,5 @@ ENV/
 # Project-specific files
 test/
 index
+index.meta
+block-*
