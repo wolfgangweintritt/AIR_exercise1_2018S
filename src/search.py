@@ -64,6 +64,100 @@ def calc_word_doc_scores(word: str) -> Dict[str, float]:
     return document_scores_for_word
 
 
+def query_user_arguments(old_run_name, old_topic_file, old_scoring, old_k1, old_k3, old_b):
+    """Query the user for the next few parameters while supplying defaults"""
+    global topic_file
+    global scoring
+    global run_name
+    global k1
+    global k3
+    global b
+
+    print("Please give the next few parameters")
+    print()
+    chosen = input("Topic File ['%s']: " % old_topic_file)
+    if not chosen:
+        chosen = old_topic_file
+    topic_file = chosen
+    print(topic_file)
+    print()
+
+    chosen = None
+    while chosen is None:
+        try:
+            choices = {1: "tfidf", 2: "bm25", 3: "bm25alt", 4: "bm25va"}
+            inv_choices = {"tfidf": 1, "bm25": 2, "bm25alt": 3, "bm25va": 4}
+            print("Scoring Functions")
+            print(" 1) TF-IDF")
+            print(" 2) BM25")
+            print(" 3) BM25, Alternative")
+            print(" 4) BM25VA")
+            choice = input("Scoring Function ['%d']: " % inv_choices[old_scoring])
+            if not choice:
+                choice = inv_choices[old_scoring]
+            else:
+                choice = int(choice)
+
+            if choice not in choices:
+                chosen = None
+            else:
+                chosen = choices[choice]
+
+        except ValueError:
+            chosen = None
+    scoring = chosen
+    print(scoring)
+    print()
+
+    run_name = input("Run Name ['%s']: " % old_run_name)
+    if not run_name:
+        run_name = old_run_name
+    print(run_name)
+    print()
+
+    chosen = None
+    while chosen is None:
+        try:
+            chosen = input("K1 ['%s']: " % old_k1)
+            if not chosen:
+                chosen = old_k1
+            else:
+                chosen = float(chosen)
+        except ValueError:
+            chosen = None
+    k1 = chosen
+    print(k1)
+    print()
+
+    chosen = None
+    while chosen is None:
+        try:
+            chosen = input("K3 ['%s']: " % old_k3)
+            if not chosen:
+                chosen = old_k3
+            else:
+                chosen = float(chosen)
+        except ValueError:
+            chosen = None
+    k3 = chosen
+    print(k3)
+    print()
+
+    chosen = None
+    while chosen is None:
+        try:
+            chosen = input("B ['%s']: " % old_b)
+            if not chosen:
+                chosen = old_b
+            else:
+                chosen = float(chosen)
+        except ValueError:
+            chosen = None
+    b = chosen
+    print(b)
+    print()
+
+
 # add argument parsing
 parser = argparse.ArgumentParser(description="Takes query and searches index for fitting documents",
                                  epilog="Maximilian Moser and Wolfgang Weintritt, 2018")
@@ -73,7 +167,7 @@ parser.add_argument("--k1", "-k1", help="BM25 Parameter k_1", type=float, defaul
 parser.add_argument("--k3", "-k3", help="BM25 Parameter k_3", type=float, default=1.2)
 parser.add_argument("--b", "-b", help="BM25 Parameter b", type=float, default=0.75)
 parser.add_argument("--debug", "-d", help="Activate Debugging", action="store_true")
-parser.add_argument("--run_name", "-r", help="Name of your run", default="run-name")
+parser.add_argument("--run_name", "-r", help="Name of your run", default="grp13-exp1")
 parser.add_argument("topic_file", help="Topic file, can contain multiple topics")
 args = parser.parse_args()
 
@@ -140,6 +234,7 @@ with open("index", "r") as idx_file:
             postings_list[pli.token] = pli
         line = idx_file.readline()
 
+print("")
 dbg("Created PL...")
 
 
