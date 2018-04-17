@@ -110,6 +110,7 @@ stop                 = idx_meta.stop_words
 lemma                = idx_meta.lemmatization
 stem                 = idx_meta.stemming
 item_count           = idx_meta.item_count
+doc_int_ids          = idx_meta.doc_int_ids
 
 dbg("Deserialized Index")
 dbg("Special   : %s" % idx_meta.special_strings)
@@ -118,7 +119,6 @@ dbg("Stop      : %s" % idx_meta.stop_words)
 dbg("Lemma     : %s" % idx_meta.lemmatization)
 dbg("Stemming  : %s" % idx_meta.stemming)
 dbg("Idx items : %s" % idx_meta.item_count)
-#dbg(document_lengths)
 
 
 # read the postings_list from the index file
@@ -151,10 +151,8 @@ tokenized_topics = {k: set(v)     for k, v in tokenized_topics.items()}
 dbg("Tokenized_topics...")
 
 number_of_docs = len(document_lengths)
-doc_lens     = [l for d, l in document_lengths.items()]
-doc_set_lens = [l for d, l in document_set_lengths.items()]
-avg_document_length = sum(doc_lens) / number_of_docs
-mean_avg_tf = (1 / number_of_docs) * sum([x/y for (x,y) in zip(doc_lens, doc_set_lens)])
+avg_document_length = sum(document_lengths) / number_of_docs
+mean_avg_tf = (1 / number_of_docs) * sum([x/y for (x,y) in zip(document_lengths, document_set_lengths)])
 dbg("Got doc/set lengths")
 
 word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.
@@ -188,5 +186,5 @@ for topic_id, topic_tokens in tokenized_topics.items():
 if DEBUG:
     rank = 1
     for score, (topic_id, document_id) in top_1000_scores.items():
-        dbg("%s Q0 %s %d %f run-name" % (topic_id, document_id, rank, score))
+        dbg("%s Q0 %s %d %f run-name" % (topic_id, doc_int_ids[document_id], rank, score))
         rank += 1

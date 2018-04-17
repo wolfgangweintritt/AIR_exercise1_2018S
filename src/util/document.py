@@ -10,9 +10,13 @@ docno_re = re.compile(r"<DOCNO>((.|\n)*?)</DOCNO>")
 text_re = re.compile(r"<TEXT>((.|\n)*?)</TEXT>")
 # hl_re = re.compile(r"<HEADLINE>((.|\n)*?)</HEADLINE>")
 
+# global list for mapping doc_int_id => doc_id
+doc_int_ids = []
+
 class Document:
-    def __init__(self, doc_id, text, headline=None):
+    def __init__(self, doc_id:str, int_id:int, text:str, headline:str=None):
         self.id = doc_id
+        self.int_id = int_id
         self.text = text
         self.headline = headline
 
@@ -43,8 +47,9 @@ def parse_documents(text: str) -> List[Document]:
             # if either the document ID or the text is empty: skip
             continue
 
-        docs.append(Document(docno, text))
-        
+        doc_int_ids.append(docno)
+        docs.append(Document(docno, len(doc_int_ids) - 1, text))
+
     return docs
 
 

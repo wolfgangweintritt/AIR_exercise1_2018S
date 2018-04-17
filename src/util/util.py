@@ -7,27 +7,29 @@ class IndexMeta:
     def __init__(self,
                  document_lengths: Dict,
                  document_set_lengths: Dict,
+                 doc_int_ids:List[str],
+                 item_count:int,
                  special_strings=False,
                  case_folding=False,
                  stop_words=False,
                  lemmatization=False,
-                 stemming=False,
-                 item_count=1):
+                 stemming=False):
 
         self.document_lengths = document_lengths
         self.document_set_lengths = document_set_lengths
+        self.doc_int_ids = doc_int_ids
+        self.item_count = item_count
         self.special_strings = special_strings
         self.case_folding = case_folding
         self.stop_words = stop_words
         self.lemmatization = lemmatization
         self.stemming = stemming
-        self.item_count=item_count
 
 
 class PostingsListItem:
     """Class that handles the doc frequency and document lists as in the slides"""
 
-    def __init__(self, token: str, doc_list: List[str]):
+    def __init__(self, token: str, doc_list: List[int]):
         self.token = token
         self.occurrences = {}
 
@@ -38,14 +40,14 @@ class PostingsListItem:
         """Return the document frequency"""
         return len(self.occurrences)
 
-    def occurrences_in(self, document: str) -> int:
+    def occurrences_in(self, document: int) -> int:
         """Check how often the token occurs in the specified document"""
         if document not in self.occurrences:
             return 0
         else:
             return self.occurrences[document]
 
-    def add_doc(self, document: str) -> None:
+    def add_doc(self, document: int) -> None:
         """Increase count of occurrences of the item in document"""
         if document in self.occurrences:
             self.occurrences[document] += 1
@@ -63,7 +65,7 @@ class PostingsListItem:
         token = list(json_object.keys())[0]
         pli = PostingsListItem(token, [])
         for doc, cnt in json_object[token].items():
-            pli.occurrences[doc] = cnt
+            pli.occurrences[int(doc)] = cnt
 
         return pli
 
@@ -226,7 +228,7 @@ class SourcedQueue:
             return None
 
 
-def merge_blocks(input_files, output_file, in_buffer_sz=100, out_buffer_sz=100):
+def merge_blocks(input_files:List[str], output_file:str, in_buffer_sz:int=100, out_buffer_sz:int=100) -> int:
     """Merge several index blocks into one single index block, as in SPIMI"""
     sq = SourcedQueue(input_files)
 

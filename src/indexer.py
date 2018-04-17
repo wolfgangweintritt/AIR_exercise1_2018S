@@ -114,8 +114,8 @@ dbg()
 try:
     # read each file and process their tokens
     postings_list        = {}
-    document_lengths     = {}
-    document_set_lengths = {}
+    document_lengths     = []
+    document_set_lengths = []
     tokenizer            = Tokenizer(case, special, stop, stemming, lemma)
     no_files             = len(files)
     blocks               = create_blocks(files)
@@ -147,16 +147,16 @@ try:
             for doc in docs:
                 # tokenize each document
                 # and construct the association list (used for the postings list)
-                tokens                       = tokenizer.tokenize(doc.text)
-                document_lengths[doc.id]     = len(tokens)
-                document_set_lengths[doc.id] = len(set(tokens))
+                tokens = tokenizer.tokenize(doc.text)
+                document_lengths     .append(len(tokens))
+                document_set_lengths.append(len(set(tokens)))
 
                 for t in tokens:
                     # increase the occurrences of the token in the document
                     if t in postings_list:
-                        postings_list[t].add_doc(doc.id)
+                        postings_list[t].add_doc(doc.int_id)
                     else:
-                        postings_list[t] = PostingsListItem(t, [doc.id])
+                        postings_list[t] = PostingsListItem(t, [doc.int_id])
 
         # write the block's index to file
         block_name = "block-%d" % blockno
@@ -175,7 +175,8 @@ try:
     print("Done Merging.")
 
     print("Saving Meta Information...")
-    idx = IndexMeta(document_lengths, document_set_lengths, special, case, stop, lemma, stemming, idx_lines)
+    idx = IndexMeta(document_lengths, document_set_lengths, document.doc_int_ids, idx_lines,
+                    special, case, stop, lemma, stemming)
     with open("index.meta", mode="wb") as idx_file:
         # persist the Index object with the pickle module
         pickle.dump(idx, idx_file)
