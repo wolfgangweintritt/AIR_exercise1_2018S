@@ -87,6 +87,7 @@ parser.add_argument("--lemmatization", "-l", help="Lemmatization", action="store
 parser.add_argument("--stemming", "-S", help="Stemming", action="store_true")
 parser.add_argument("--debug", "-d", help="Activate Debugging", action="store_true")
 parser.add_argument("--utf8", "-u", help="Use UTF-8 encoding instead of ISO-8859-1", action="store_true")
+parser.add_argument("--preserve-blocks", "-p", help="Preserve Block Files", action="store_true")
 parser.add_argument("files", metavar="FILE", nargs="+", help="File to index")
 args = parser.parse_args()
 
@@ -98,6 +99,7 @@ stemming = args.stemming
 files    = args.files
 DEBUG    = args.debug
 encoding = "utf8" if args.utf8 else "iso-8859-1"
+preserve = args.preserve_blocks
 
 # create list of files from positional arguments
 files = expand_directories(files)
@@ -173,6 +175,11 @@ try:
     print("Merging Blocks...")
     idx_lines = merge_blocks(block_files, "index")
     print("Done Merging.")
+
+    # delete blocks because we don't need them anymore
+    if not preserve:
+        for block in block_files:
+            os.remove(block)
 
     print("Saving Meta Information...")
     idx = IndexMeta(document_lengths, document_set_lengths, document.doc_int_ids, idx_lines,
