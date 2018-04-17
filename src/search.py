@@ -3,6 +3,7 @@
 import argparse
 import os.path
 import pickle
+import datetime
 from collections import Counter
 from math import log10
 from operator import neg
@@ -72,13 +73,15 @@ parser.add_argument("--k1", "-k1", help="BM25 Parameter k_1", type=float, defaul
 parser.add_argument("--k3", "-k3", help="BM25 Parameter k_3", type=float, default=1.2)
 parser.add_argument("--b", "-b", help="BM25 Parameter b", type=float, default=0.75)
 parser.add_argument("--debug", "-d", help="Activate Debugging", action="store_true")
-parser.add_argument("topic_file", metavar="'topic file, can contain multiple topics'")
+parser.add_argument("--run_name", "-r", help="Name of your run", default="run-name")
+parser.add_argument("topic_file", help="Topic file, can contain multiple topics")
 args = parser.parse_args()
 
 scoring    = args.scoring_function
 k1         = args.k1
 k3         = args.k3
 b          = args.b
+run_name   = args.run_name
 topic_file = args.topic_file
 DEBUG      = args.debug
 
@@ -183,8 +186,12 @@ for topic_id, topic_tokens in tokenized_topics.items():
                 top_1000_scores[score] = (topic_id, doc_id)
 
 
-if DEBUG:
-    rank = 1
+rank = 1
+now_formatted = datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+filename = "results_%s_%s_%s.txt" % (run_name, scoring, now_formatted)
+with open(filename, "w") as out_file:
     for score, (topic_id, document_id) in top_1000_scores.items():
-        dbg("%s Q0 %s %d %f run-name" % (topic_id, doc_int_ids[document_id], rank, score))
+        line = ("%s Q0 %s %d %f %s" % (topic_id, doc_int_ids[document_id], rank, score, run_name))
+        out_file.write(line + "\n")
+        dbg(line)
         rank += 1
