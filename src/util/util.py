@@ -11,7 +11,8 @@ class IndexMeta:
                  case_folding=False,
                  stop_words=False,
                  lemmatization=False,
-                 stemming=False):
+                 stemming=False,
+                 item_count=1):
 
         self.document_lengths = document_lengths
         self.document_set_lengths = document_set_lengths
@@ -20,6 +21,7 @@ class IndexMeta:
         self.stop_words = stop_words
         self.lemmatization = lemmatization
         self.stemming = stemming
+        self.item_count=item_count
 
 
 class PostingsListItem:
@@ -228,6 +230,7 @@ def merge_blocks(input_files, output_file, in_buffer_sz=100, out_buffer_sz=100):
     """Merge several index blocks into one single index block, as in SPIMI"""
     sq = SourcedQueue(input_files)
 
+    item_count = 0
     with open(output_file, "w") as out_file:
         item     = sq.dequeue()
         old_item = None
@@ -240,6 +243,7 @@ def merge_blocks(input_files, output_file, in_buffer_sz=100, out_buffer_sz=100):
             elif old_item is not None:
                 # if the old item was something different, we can safely print it
                 out_file.write("%s\n" % old_item.to_json())
+                item_count += 1
 
             old_item = item
             item = sq.dequeue()
@@ -247,6 +251,8 @@ def merge_blocks(input_files, output_file, in_buffer_sz=100, out_buffer_sz=100):
             # the last item might not have been printed (if it was the same as the previous ones...)
             if old_item is not None:
                 out_file.write("%s\n" % old_item.to_json())
+                item_count += 1
+    return item_count
 
 
 if __name__ == "__main__":

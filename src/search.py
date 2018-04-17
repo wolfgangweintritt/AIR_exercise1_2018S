@@ -99,15 +99,8 @@ if not os.path.isfile("index") or not os.path.isfile("index.meta"):
 with open("index.meta", "rb") as idx_meta_file:
     idx_meta = pickle.load(idx_meta_file)
 
-# read the postings_list from the index file
-postings_list = []
-with open("index", "r") as idx_file:
-    line = idx_file.readline()
-    while line is not None:
-        if line.strip():
-            pli = PostingsListItem.from_json(line.strip())
-            postings_list.append(pli)
-        line = idx_file.readline()
+dbg("Read index...")
+
 
 document_lengths     = idx_meta.document_lengths
 document_set_lengths = idx_meta.document_set_lengths
@@ -116,14 +109,35 @@ case                 = idx_meta.case_folding
 stop                 = idx_meta.stop_words
 lemma                = idx_meta.lemmatization
 stem                 = idx_meta.stemming
+item_count           = idx_meta.item_count
 
 dbg("Deserialized Index")
-dbg("Special : %s" % idx_meta.special_strings)
-dbg("Case    : %s" % idx_meta.case_folding)
-dbg("Stop    : %s" % idx_meta.stop_words)
-dbg("Lemma   : %s" % idx_meta.lemmatization)
-dbg("Stemming: %s" % idx_meta.stemming)
-dbg(document_lengths)
+dbg("Special   : %s" % idx_meta.special_strings)
+dbg("Case      : %s" % idx_meta.case_folding)
+dbg("Stop      : %s" % idx_meta.stop_words)
+dbg("Lemma     : %s" % idx_meta.lemmatization)
+dbg("Stemming  : %s" % idx_meta.stemming)
+dbg("Idx items : %s" % idx_meta.item_count)
+#dbg(document_lengths)
+
+
+# read the postings_list from the index file
+postings_list = {}
+with open("index", "r") as idx_file:
+    line = idx_file.readline()
+    line_idx = 1
+    while line:
+        percent_done = (line_idx / item_count) * 100
+        done = int((line_idx / item_count) * 50)
+        balkan = "[%s%s]" % ("#" * done, " " * (50 - done))
+        print("%s Idx Lines processed: %d/%d (%.2f%%)" % (balkan, line_idx, item_count, percent_done), end="\r")
+        line_idx += 1
+        if line.strip():
+            pli = PostingsListItem.from_json(line.strip())
+            postings_list[pli.token] = pli
+        line = idx_file.readline()
+
+dbg("Created PL...")
 
 
 topics = parse_topic(topic_file)
@@ -132,14 +146,16 @@ tokenizer = Tokenizer(True, True, True, True, True, TOPIC_STOPWORDS)
 tokenized_topics = {k: tokenizer.tokenize(v) for k, v in topics.items()}
 topic_tf_q       = {k: Counter(v) for k, v in tokenized_topics.items()}
 tokenized_topics = {k: set(v)     for k, v in tokenized_topics.items()}
-dbg(tokenized_topics)
-dbg(topic_tf_q)
+#dbg(tokenized_topics)
+#dbg(topic_tf_q)
+dbg("Tokenized_topics...")
 
 number_of_docs = len(document_lengths)
 doc_lens     = [l for d, l in document_lengths.items()]
 doc_set_lens = [l for d, l in document_set_lengths.items()]
 avg_document_length = sum(doc_lens) / number_of_docs
 mean_avg_tf = (1 / number_of_docs) * sum([x/y for (x,y) in zip(doc_lens, doc_set_lens)])
+dbg("Got doc/set lengths")
 
 word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.
 top_1000_scores = SortedDict(neg, {})  # sorted dict: score => (topic, dict)

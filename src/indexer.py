@@ -171,11 +171,11 @@ try:
 
     # merge the blocks together
     print("Merging Blocks...")
-    merge_blocks(block_files, "index")
+    idx_lines = merge_blocks(block_files, "index")
     print("Done Merging.")
 
     print("Saving Meta Information...")
-    idx = IndexMeta(document_lengths, document_set_lengths, special, case, stop, lemma, stemming)
+    idx = IndexMeta(document_lengths, document_set_lengths, special, case, stop, lemma, stemming, idx_lines)
     with open("index.meta", mode="wb") as idx_file:
         # persist the Index object with the pickle module
         pickle.dump(idx, idx_file)
