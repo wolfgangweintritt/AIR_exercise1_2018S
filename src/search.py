@@ -23,7 +23,7 @@ def dbg(*args, **kwargs):
         print(*args, **kwargs)
 
 
-def calc_word_doc_scores(word: str) -> Dict[str, float]:
+def calc_word_doc_scores(word: str) -> Dict[int, float]:
     """calculate document scores for a word, returns a dictionary with (doc_id => score)"""
     if word not in postings_list:
         return {}
@@ -258,7 +258,7 @@ top_1000_scores = SortedDict(neg, {})  # sorted dict: score => (topic, dict)
 for topic_id, topic_tokens in tokenized_topics.items():
     document_scores = {}  # dict: document => score
     for word in topic_tokens:
-        if word not in word_doc_score:
+        if scoring == "bm25va" or scoring == "bm25alt" or word not in word_doc_score:
             word_doc_score[word] = calc_word_doc_scores(word)
 
         # take the score for the document for this word, add it to the score for the document for this topic.
