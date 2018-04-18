@@ -73,6 +73,11 @@ def query_user_arguments(old_run_name, old_topic_file, old_scoring, old_k1, old_
     global k3
     global b
 
+    another_round = input("Do another query? [Y/n]: ")
+    if another_round:
+        if another_round.strip().lower() == "n":
+            return False
+
     print("Please give the next few parameters")
     print()
     chosen = input("Topic File ['%s']: " % old_topic_file)
@@ -157,6 +162,8 @@ def query_user_arguments(old_run_name, old_topic_file, old_scoring, old_k1, old_
     print(b)
     print()
 
+    return True
+
 
 # add argument parsing
 parser = argparse.ArgumentParser(description="Takes query and searches index for fitting documents",
@@ -237,56 +244,60 @@ with open("index", "r") as idx_file:
 print("")
 dbg("Created PL...")
 
-
-topics = parse_topic(topic_file)
-# tokenize the topics content with the same options that the index was created with, omit repeated tokens
-tokenizer = Tokenizer(True, True, True, True, True, TOPIC_STOPWORDS)
-tokenized_topics = {k: tokenizer.tokenize(v) for k, v in topics.items()}
-topic_tf_q       = {k: Counter(v) for k, v in tokenized_topics.items()}
-tokenized_topics = {k: set(v)     for k, v in tokenized_topics.items()}
-#dbg(tokenized_topics)
-#dbg(topic_tf_q)
-dbg("Tokenized_topics...")
-
 number_of_docs = len(document_lengths)
 avg_document_length = sum(document_lengths) / number_of_docs
 mean_avg_tf = (1 / number_of_docs) * sum([x/y for (x,y) in zip(document_lengths, document_set_lengths)])
 dbg("Got doc/set lengths")
 
-word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.
-top_1000_scores = SortedDict(neg, {})  # sorted dict: score => (topic, dict)
-for topic_id, topic_tokens in tokenized_topics.items():
-    document_scores = {}  # dict: document => score
-    for word in topic_tokens:
-        if scoring == "bm25va" or scoring == "bm25alt" or word not in word_doc_score:
-            word_doc_score[word] = calc_word_doc_scores(word)
 
-        # take the score for the document for this word, add it to the score for the document for this topic.
-        for doc_id, score in word_doc_score[word].items():
-            current_doc_score = document_scores.get(doc_id, 0)
-            document_scores[doc_id] = current_doc_score + score
+another_round = True
+while another_round:
+    topics = parse_topic(topic_file)
+    # tokenize the topics content with the same options that the index was created with, omit repeated tokens
+    tokenizer = Tokenizer(case, special, stop, stem, lemma, TOPIC_STOPWORDS)
+    tokenized_topics = {k: tokenizer.tokenize(v) for k, v in topics.items()}
+    topic_tf_q       = {k: Counter(v) for k, v in tokenized_topics.items()}
+    tokenized_topics = {k: set(v)     for k, v in tokenized_topics.items()}
+    #dbg(tokenized_topics)
+    #dbg(topic_tf_q)
+    dbg("Tokenized_topics...")
 
-    # topic length corrections: map over document_scores
-    document_scores = {k: v/len(topic_tokens) for k, v in document_scores.items()}
+    word_doc_score = {}  # dict: word => {doc: score}, keep it for the whole run, so we do not calculate the scores multiple times.
+    top_1000_scores = SortedDict(neg, {})  # sorted dict: score => (topic, dict)
+    for topic_id, topic_tokens in tokenized_topics.items():
+        document_scores = {}  # dict: document => score
+        for word in topic_tokens:
+            if scoring == "bm25va" or scoring == "bm25alt" or word not in word_doc_score:
+                word_doc_score[word] = calc_word_doc_scores(word)
 
-    # now take all documents and add the ones with scores in the top 1000 overall to our sorted dict.
-    for doc_id, score in document_scores.items():
-        # only insert into topscore sorted dict, if the score is bigger than the worst score inside
-        if len(top_1000_scores) < 1000:
-            top_1000_scores[score] = (topic_id, doc_id)
-        else:
-            last_key = top_1000_scores.iloc[-1]
-            if last_key < score:
-                del top_1000_scores[last_key]
+            # take the score for the document for this word, add it to the score for the document for this topic.
+            for doc_id, score in word_doc_score[word].items():
+                current_doc_score = document_scores.get(doc_id, 0)
+                document_scores[doc_id] = current_doc_score + score
+
+        # topic length corrections: map over document_scores
+        document_scores = {k: v/len(topic_tokens) for k, v in document_scores.items()}
+
+        # now take all documents and add the ones with scores in the top 1000 overall to our sorted dict.
+        for doc_id, score in document_scores.items():
+            # only insert into topscore sorted dict, if the score is bigger than the worst score inside
+            if len(top_1000_scores) < 1000:
                 top_1000_scores[score] = (topic_id, doc_id)
+            else:
+                last_key = top_1000_scores.iloc[-1]
+                if last_key < score:
+                    del top_1000_scores[last_key]
+                    top_1000_scores[score] = (topic_id, doc_id)
 
 
-rank = 1
-now_formatted = datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
-filename = "results_%s_%s_%s.txt" % (run_name, scoring, now_formatted)
-with open(filename, "w") as out_file:
-    for score, (topic_id, document_id) in top_1000_scores.items():
-        line = ("%s Q0 %s %d %f %s" % (topic_id, doc_int_ids[document_id], rank, score, run_name))
-        out_file.write(line + "\n")
-        dbg(line)
-        rank += 1
+    rank = 1
+    now_formatted = datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+    filename = "results_%s_%s_%s.txt" % (run_name, scoring, now_formatted)
+    with open(filename, "w") as out_file:
+        for score, (topic_id, document_id) in top_1000_scores.items():
+            line = ("%s Q0 %s %d %f %s" % (topic_id, doc_int_ids[document_id], rank, score, run_name))
+            out_file.write(line + "\n")
+            dbg(line)
+            rank += 1
+
+    another_round = query_user_arguments(run_name, topic_file, scoring, k1, k3, b)
