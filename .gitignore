@@ -112,3 +112,4 @@ index
 index.meta
 block-*
 results_*.txt
+trec_eval*
